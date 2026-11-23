@@ -2,9 +2,18 @@
 
 Cementerio infinito en primera persona (Three.js): clima vivo, luna con fases reales, luz física y panteones generados proceduralmente.
 
+## Estructura
+
+- `dist/` — la versión compilada en un solo archivo, lista para jugar.
+- `CHANGELOG.md` — registro de todas las modificaciones, versión por versión.
+- `TODO.md` — trabajo pendiente y en curso.
+- `ESQUEMA-FENOMENO-CONSECUENCIA.md` — el esquema fenómeno→consecuencia que rige la simulación.
+
+El código fuente modular (18 módulos JS + CSS) vive en el artefacto de Muse; se está preparando su publicación en este repositorio.
+
 ## Jugar
 
-Abrí `index.html` en el navegador, o activá GitHub Pages en este repositorio (Settings → Pages → Deploy from a branch → main).
+Abrí `dist/index.html` en el navegador.
 
 ## Controles
 
@@ -13,4 +22,4 @@ Abrí `index.html` en el navegador, o activá GitHub Pages en este repositorio (
 
 ## Estado
 
-Versión v71 (2026-11-22). El código fuente modular vive en el artefacto de Muse; este repositorio guarda la versión construida en un solo archivo.
+Versión v71 (2026-11-22).
