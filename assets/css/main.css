@@ -1,0 +1,211 @@
+/* Cementerio procedural — estilos de la interfaz (HUD, menú inicial, panel DEBUG, controles táctiles) */
+      button, [role="button"] { min-height: 2.75rem; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #cfd8cc; }
+      body { font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; -webkit-user-select: none; user-select: none; }
+      #scene { position: fixed; inset: 0; touch-action: none; }
+      #scene canvas { display: block; touch-action: none; }
+
+      .plate {
+        background: rgba(14, 20, 14, 0.58);
+        color: #eef2e4;
+        border: 1px solid rgba(238, 242, 228, 0.16);
+        border-radius: 6px;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+      }
+      #hud {
+        position: fixed; top: max(10px, env(safe-area-inset-top)); left: 10px;
+        padding: 8px 12px; font-size: 13px; line-height: 1.5; letter-spacing: 0.04em;
+        pointer-events: none; z-index: 5; font-variant-numeric: tabular-nums;
+      }
+      #hud b { color: #d8bc7f; font-weight: 600; }
+      #fpsHud {
+        position: fixed; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 5;
+        padding: 5px 10px; font-size: 11.5px; letter-spacing: 0.06em; pointer-events: none;
+        font-variant-numeric: tabular-nums; opacity: 0.85;
+      }
+      #fpsHud b { color: #d8bc7f; font-weight: 600; }
+      #btnSound {
+        position: fixed; top: max(10px, env(safe-area-inset-top)); right: 10px; z-index: 6;
+        min-width: 44px; padding: 0 14px; font-size: 12px; letter-spacing: 0.12em;
+        font-family: inherit; cursor: pointer;
+      }
+      #btnDebug {
+        position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 54px); right: 10px; z-index: 6;
+        min-width: 44px; padding: 0 14px; font-size: 12px; letter-spacing: 0.12em;
+        font-family: inherit; cursor: pointer;
+      }
+      #btnFlash {
+        position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 108px); right: 10px; z-index: 6;
+        min-width: 44px; padding: 0 14px; font-size: 12px; letter-spacing: 0.12em;
+        font-family: inherit; cursor: pointer;
+      }
+      #btnFlash.on { background: rgba(216,188,127,0.88); color: #1c1a12; border-color: transparent; font-weight: 600; }
+      #btnNoclip {
+        position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 162px); right: 10px; z-index: 6;
+        min-width: 44px; padding: 0 14px; font-size: 12px; letter-spacing: 0.12em;
+        font-family: inherit; cursor: pointer;
+      }
+      #btnNoclip.on { background: rgba(216,188,127,0.88); color: #1c1a12; border-color: transparent; font-weight: 600; }
+      /* UI táctil por DETECCIÓN REAL (v70): los controles de tacto
+         (joystick, CORRER, botón de interactuar) colgaban SOLO de la
+         media query (pointer: coarse) — en webviews que la reportan
+         mal, el botón ABRIR/LEER nunca aparecía en el móvil aunque
+         su lógica corriera cada frame. player.js marca <html> con
+         .touch-ui al detectar capacidad táctil y estas reglas valen
+         igual que las de la media query. */
+      html.touch-ui #joy, html.touch-ui #btnRun { display: block; }
+      html.touch-ui #btnInteract.on { display: block; }
+      html.touch-ui #hint { display: none; }
+      /* Panel DEBUG: por encima de todos los botones del HUD */
+      #debugPanel {
+        position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 108px); right: 10px; z-index: 60;
+        width: min(324px, calc(100vw - 20px)); max-height: calc(100dvh - 130px); overflow-y: auto;
+        padding: 0 16px 14px; display: none; text-align: left;
+      }
+      #debugPanel.open { display: block; }
+      #debugPanel .dbgHead {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 0 8px; border-bottom: 1px solid rgba(238,242,228,0.16); margin-bottom: 10px;
+      }
+      #debugPanel .dbgTitle { font-size: 13px; letter-spacing: 0.22em; color: #d8bc7f; font-weight: 600; }
+      #dbgScrollLock {
+        font-size: 9.5px; letter-spacing: 0.14em; color: #d8bc7f; border: 1px solid rgba(216,188,127,0.6);
+        border-radius: 999px; padding: 3px 8px; opacity: 0; transition: opacity 0.15s ease; white-space: nowrap;
+      }
+      #dbgScrollLock.on { opacity: 1; }
+      /* Protección de sliders al scrollear el panel: el gesto vertical
+         (táctil) siempre scrollea el menú —touch-action: pan-y— y nunca
+         arrastra un slider; solo el arrastre horizontal deliberado lo
+         mueve. Durante el scroll los sliders se atenúan (estado visible
+         de la protección, junto al distintivo de la cabecera). */
+      #debugPanel input[type="range"] { touch-action: pan-y; }
+      #debugPanel.scrolling input[type="range"] { opacity: 0.45; }
+      #btnDebugClose {
+        width: 44px; height: 44px; min-height: 44px; flex: 0 0 auto; border: none; border-radius: 6px;
+        background: rgba(238,242,228,0.12); color: #eef2e4; font-size: 22px; line-height: 1; cursor: pointer;
+        font-family: inherit; padding: 0;
+      }
+      #dbgSearch {
+        width: 100%; min-height: 42px; padding: 0 12px; border-radius: 6px; margin-bottom: 4px;
+        background: rgba(238,242,228,0.08); color: #eef2e4; border: 1px solid rgba(238,242,228,0.22);
+        font-family: inherit; font-size: 14px;
+      }
+      #dbgSearch::placeholder { color: rgba(238,242,228,0.45); }
+      #btnReset, #btnDrain {
+        width: 100%; min-height: 42px; margin: 6px 0 2px; padding: 0 12px; border-radius: 6px;
+        border: 1px solid rgba(216,188,127,0.55); background: rgba(216,188,127,0.16);
+        color: #e8d9ae; font-family: inherit; font-size: 12.5px; letter-spacing: 0.18em; cursor: pointer;
+      }
+      #debugPanel .dbgLabel { font-size: 12px; letter-spacing: 0.1em; color: #cfd6c2; margin: 12px 0 6px; }
+      #debugPanel .dbgLabel b { color: #d8bc7f; font-weight: 600; font-variant-numeric: tabular-nums; }
+      #dbgDensity { width: 100%; height: 36px; accent-color: #d8bc7f; margin: 0; cursor: pointer; }
+      #debugPanel .dbgRow { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+      #debugPanel label.chk {
+        display: inline-flex; align-items: center; gap: 7px; min-height: 40px;
+        font-size: 13.5px; color: #eef2e4; cursor: pointer;
+      }
+      #debugPanel label.chk input { width: 20px; height: 20px; accent-color: #d8bc7f; margin: 0; cursor: pointer; }
+      #debugPanel .dbgNote { font-size: 11.5px; line-height: 1.5; color: rgba(221,228,207,0.6); margin-top: 10px; }
+      #debugPanel .wbtn {
+        min-height: 40px; padding: 0 12px; border: 1px solid rgba(238,242,228,0.22); border-radius: 6px;
+        background: rgba(238,242,228,0.07); color: #eef2e4; font-family: inherit; font-size: 12.5px;
+        letter-spacing: 0.04em; cursor: pointer;
+      }
+      #debugPanel .wbtn.on { background: rgba(216,188,127,0.85); color: #1c1a12; border-color: transparent; font-weight: 600; }
+      #dbgWalk, #dbgRun, #dbgCloud, #dbgFog, #dbgHour, #dbgGrass, #dbgTrees, #dbgWind, #dbgWindDir, #dbgSun, #dbgCloudSpd, #dbgRain, #dbgTestPos, #dbgTestTau, #dbgSimT, #dbgSimRH, #dbgSimCAPE, #dbgSimU, #dbgMoonGlow { width: 100%; height: 36px; accent-color: #d8bc7f; margin: 0; cursor: pointer; }
+      /* Secciones desplegables del panel DEBUG por categoría */
+      #debugPanel .dbgSec { border-top: 1px solid rgba(238,242,228,0.14); margin-top: 6px; }
+      #debugPanel .dbgSec summary {
+        cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px;
+        min-height: 44px; padding: 4px 0; font-size: 12px; letter-spacing: 0.20em;
+        color: #d8bc7f; font-weight: 600; -webkit-user-select: none; user-select: none;
+      }
+      #debugPanel .dbgSec summary::-webkit-details-marker { display: none; }
+      #debugPanel .dbgSec summary::after { content: "▾"; margin-left: auto; font-size: 14px; transition: transform 0.18s ease; }
+      #debugPanel .dbgSec:not([open]) summary::after { transform: rotate(-90deg); }
+      #debugPanel .dbgSec > .dbgLabel:first-of-type { margin-top: 2px; }
+      #dbgMoon, #dbgPreset {
+        width: 100%; min-height: 42px; padding: 0 10px; border-radius: 6px; cursor: pointer;
+        background: rgba(238,242,228,0.08); color: #eef2e4; border: 1px solid rgba(238,242,228,0.22);
+        font-family: inherit; font-size: 13.5px;
+      }
+      #dbgMoon option, #dbgPreset option { color: #14161c; }
+      #dbgPreset { margin-bottom: 10px; }
+      #plaqueCard {
+        position: fixed; left: 50%; bottom: 108px; transform: translateX(-50%) translateY(8px);
+        width: min(430px, calc(100vw - 32px)); padding: 14px 18px 12px; text-align: center;
+        opacity: 0; transition: opacity 0.35s ease, transform 0.35s ease; pointer-events: none; z-index: 5;
+      }
+      #plaqueCard.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      #plaqueCard .pname { font-family: Georgia, "Times New Roman", serif; font-size: 20px; letter-spacing: 0.06em; color: #f3ecd9; }
+      #plaqueCard .pyears { font-size: 13px; letter-spacing: 0.22em; color: #d8bc7f; margin-top: 2px; }
+      #plaqueCard .pepitaph { font-family: Georgia, serif; font-style: italic; font-size: 14.5px; color: #cfd6c2; margin-top: 6px; }
+      /* Sin luz suficiente la placa no se lee: el texto se difumina
+         hasta hacerlo ilegible (sin leyendas ni avisos). */
+      #plaqueCard.dark .pname, #plaqueCard.dark .pyears, #plaqueCard.dark .pepitaph {
+        filter: blur(7px); opacity: 0.28; color: #8f968a;
+      }
+      /* La mirada fija de 2 s NO muestra ningún indicador de carga: la
+         placa ya viene precargada con el chunk de su tumba (atlas y datos
+         generados al construir el chunk) y al cumplirse los 2 s aparece
+         al instante con su fade. La barra queda oculta siempre. */
+      #gaze { display: none; }
+      #gaze.on { opacity: 1; }
+      #gazeFill { height: 100%; width: 0%; background: #d8bc7f; }
+      #hint {
+        position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+        padding: 6px 14px; font-size: 12px; letter-spacing: 0.05em; white-space: nowrap; z-index: 4; pointer-events: none;
+      }
+      @media (pointer: coarse) { #hint { display: none; } #plaqueCard { bottom: 176px; } }
+
+      /* Touch controls */
+      #joy { position: fixed; left: 18px; bottom: 64px; width: 124px; height: 124px; border-radius: 50%;
+        border: 1.5px solid rgba(238,242,228,0.35); background: rgba(14,20,14,0.30); z-index: 6; touch-action: none; display: none; }
+      #joyKnob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; border-radius: 50%;
+        background: rgba(238,242,228,0.75); transform: translate(-50%,-50%); }
+      #btnRun { position: fixed; right: 18px; bottom: 84px; width: 64px; height: 64px; border-radius: 50%; z-index: 6;
+        font-size: 10.5px; letter-spacing: 0.08em; font-family: inherit; cursor: pointer; display: none; padding: 0; }
+      #btnRun.on { background: rgba(216, 188, 127, 0.85); color: #1c1a12; }
+      @media (pointer: coarse) { #joy, #btnRun { display: block; } }
+      /* Resplandor del sol en la cámara: degradado cálido a pantalla
+         completa centrado donde el sol se proyecta (--gx/--gy los pone
+         sky.js cada frame); opacidad 0 cuando no se mira al sol. */
+      #sunGlare { position: fixed; inset: 0; z-index: 3; pointer-events: none; opacity: 0;
+        background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255,246,218,0.55) 0%, rgba(255,228,166,0.20) 16%, rgba(255,206,120,0.06) 40%, rgba(255,196,105,0) 68%); }
+      /* Botón de interactuar: solo aparece cuando una placa es el
+         objetivo de lectura (clase .on desde reading.js) y SOLO en
+         táctil — en escritorio no se muestra nunca (a pedido): la
+         lectura en PC es con la tecla E. */
+      #btnInteract { position: fixed; right: 18px; bottom: 164px; width: 64px; height: 64px; border-radius: 50%; z-index: 6;
+        font-size: 11px; letter-spacing: 0.08em; font-family: inherit; cursor: pointer; display: none; padding: 0; }
+      #btnInteract.on { background: rgba(216, 188, 127, 0.92); color: #1c1a12; }
+      @media (pointer: coarse) { #btnInteract.on { display: block; } }
+
+      /* Start overlay */
+      #startOverlay {
+        position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+        background: rgba(20, 26, 18, 0.34); padding: 16px;
+      }
+      #startCard { max-width: 320px; width: 100%; padding: 22px 22px 20px; text-align: center; border-radius: 8px; }
+      #startCard h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; font-size: 30px;
+        letter-spacing: 0.10em; margin: 0 0 6px; color: #f3ecd9; }
+      #startCard .rule { width: 54px; height: 1px; background: #d8bc7f; margin: 10px auto 12px; }
+      #startCard p { margin: 0 0 8px; font-size: 14.5px; line-height: 1.55; color: #dde4cf; }
+      #startCard .controls { font-size: 12.5px; color: #aeb89e; line-height: 1.7; margin-top: 10px; }
+      #btnStart { padding: 0 30px; min-height: 52px; width: 100%; font-family: Georgia, serif; font-size: 17px;
+        letter-spacing: 0.08em; background: #d8bc7f; color: #211c10; border: none; border-radius: 4px; cursor: pointer; }
+      #btnStart:disabled { opacity: 0.45; cursor: wait; }
+      #btnHelp { margin-top: 10px; padding: 0 30px; min-height: 48px; width: 100%; font-family: inherit; font-size: 14px;
+        letter-spacing: 0.14em; background: rgba(238,242,228,0.08); color: #eef2e4; border: 1px solid rgba(238,242,228,0.28); border-radius: 4px; cursor: pointer; }
+      #helpList { display: none; margin-top: 14px; text-align: left; font-size: 13.5px; line-height: 1.75; color: #dde4cf; }
+      #helpList.open { display: block; }
+      #helpList b { color: #d8bc7f; font-weight: 600; }
+      #startCard .credits { margin-top: 16px; font-size: 10.5px; line-height: 1.6; color: rgba(221,228,207,0.55); }
+      #startCard .credits a { color: rgba(216,188,127,0.8); }
+
+      #err { position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 50; display: none;
+        background: rgba(90, 16, 16, 0.92); color: #ffe9e9; font: 12.5px/1.5 ui-monospace, monospace;
+        padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; }
+    

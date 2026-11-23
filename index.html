@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Cementerio procedural</title>
+    <link rel="stylesheet" href="assets/css/main.css?v=73" />
+  </head>
+  <body>
+    <div id="scene"></div>
+    <div id="sunGlare" aria-hidden="true"></div>
+
+    <div id="hud" class="plate">Distancia <b id="statDist">0 m</b> &nbsp;·&nbsp; Lápidas leídas <b id="statRead">0</b></div>
+    <div id="fpsHud" class="plate" aria-hidden="true">FPS <b id="fpsNow">—</b> · prom <b id="fpsAvg">—</b></div>
+    <button id="btnSound" class="plate" type="button">SONIDO · SÍ</button>
+    <button id="btnDebug" class="plate" type="button">DEBUG</button>
+    <button id="btnFlash" class="plate" type="button" aria-pressed="false">LINTERNA · NO</button>
+    <button id="btnNoclip" class="plate" type="button" aria-pressed="false">NOCLIP · NO</button>
+
+    <div id="debugPanel" class="plate" role="dialog" aria-label="Menú de depuración">
+      <div class="dbgHead">
+        <span class="dbgTitle">DEBUG</span>
+        <span id="dbgScrollLock" aria-hidden="true">SLIDERS PROTEGIDOS</span>
+        <button id="btnDebugClose" type="button" aria-label="Cerrar menú debug">×</button>
+      </div>
+      <input id="dbgSearch" type="search" placeholder="Buscar…" aria-label="Buscar parámetro" autocomplete="off" />
+      <button id="btnReset" type="button">RESETEAR</button>
+      <button id="btnDrain" type="button">DRENAR SUELO</button>
+      <details class="dbgSec">
+        <summary>HORA DEL DÍA</summary>
+      <div class="dbgLabel">MOMENTO DEL DÍA</div>
+      <div class="dbgRow">
+        <button class="wbtn tod" type="button" data-hour="5.6">Amanecer</button>
+        <button class="wbtn tod on" type="button" data-hour="11.5">Día</button>
+        <button class="wbtn tod" type="button" data-hour="17.9">Ocaso</button>
+        <button class="wbtn tod" type="button" data-hour="23.4">Noche</button>
+      </div>
+      <div class="dbgLabel">HORA · <b id="dbgHourVal">11:30</b></div>
+      <input id="dbgHour" type="range" min="0" max="24" step="0.1" value="11.5" aria-label="Hora del día" />
+      <div class="dbgLabel">DÍA DEL AÑO · <b id="dbgDayVal">15 oct · día 288</b></div>
+      <input id="dbgDayOfYear" type="range" min="1" max="365" step="1" value="288" aria-label="Día del año" />
+      <div class="dbgLabel">FASE DE LA LUNA</div>
+      <select id="dbgMoon" aria-label="Fase de la luna">
+        <option value="auto" selected>Automática (la real de hoy)</option>
+        <option value="0">Luna nueva</option>
+        <option value="1">Creciente</option>
+        <option value="2">Cuarto creciente</option>
+        <option value="3">Gibosa creciente</option>
+        <option value="4">Luna llena</option>
+        <option value="5">Gibosa menguante</option>
+        <option value="6">Cuarto menguante</option>
+        <option value="7">Menguante</option>
+      </select>
+      <div class="dbgLabel">BRILLO DEL SOL · <b id="dbgSunVal">100 %</b></div>
+      <input id="dbgSun" type="range" min="20" max="220" step="5" value="100" aria-label="Brillo del sol" />
+      <div class="dbgLabel">BRILLO DE LA LUNA · <b id="dbgMoonGlowVal">100 %</b></div>
+      <input id="dbgMoonGlow" type="range" min="20" max="220" step="5" value="100" aria-label="Brillo de la luna" />
+      <div class="dbgLabel">CALIBRACIÓN · REBOTE Y SOL EN EL CEMENTO · EN VIVO</div>
+      <div class="dbgLabel">REBOTE DEL SUELO · INTENSIDAD · <b id="dbgBounceGainVal">0 %</b></div>
+      <input id="dbgBounceGain" type="range" min="0" max="250" step="5" value="0" aria-label="Intensidad del rebote del suelo" />
+      <div class="dbgLabel">TINTE DEL REBOTE · FUERZA · <b id="dbgTintForceVal">100 %</b></div>
+      <input id="dbgTintForce" type="range" min="0" max="200" step="5" value="100" aria-label="Fuerza del tinte del rebote" />
+      <div class="dbgLabel">SOL DIRECTO EN EL CEMENTO · <b id="dbgStoneSunVal">150 %</b></div>
+      <input id="dbgStoneSun" type="range" min="40" max="220" step="5" value="150" aria-label="Sol directo en el cemento" />
+      <div class="dbgLabel">LUZ INTERIOR · ABERTURA DE LA PUERTA · <b id="dbgInteriorVal">100 %</b></div>
+      <input id="dbgInterior" type="range" min="0" max="200" step="5" value="100" aria-label="Luz interior por la abertura de la puerta" />
+      <div class="dbgLabel">TINTE 0 % = REBOTE NEUTRO, SIN COLOR · 100 % = EL TINTE DERIVADO DEL CÉSPED · CALIBRACIÓN FIJADA: REBOTE 0 % Y SOL EN EL CEMENTO 150 % (RESETEAR VUELVE A ELLOS) · INTERIOR 100 % = EL FACTOR FÍSICO DEL ÁNGULO SÓLIDO DE LA PUERTA (0,42 EN EL UMBRAL → ~0,07 AL FONDO); 0 % = INTERIOR A OSCURAS</div>
+      </details>
+      <details class="dbgSec">
+        <summary>MUNDO Y VEGETACIÓN</summary>
+      <div class="dbgLabel">DENSIDAD DE TUMBAS · <b id="dbgDensityVal">10 %</b></div>
+      <input id="dbgDensity" type="range" min="0" max="200" step="5" value="10" aria-label="Densidad de tumbas" />
+      <div class="dbgLabel">FORMAS QUE PUEDEN APARECER</div>
+      <div class="dbgRow">
+        <label class="chk"><input type="checkbox" id="dbgK0" checked /> Redonda</label>
+        <label class="chk"><input type="checkbox" id="dbgK1" checked /> Gótica</label>
+        <label class="chk"><input type="checkbox" id="dbgK2" checked /> Cruz</label>
+        <label class="chk"><input type="checkbox" id="dbgK3" checked /> Obelisco</label>
+        <label class="chk"><input type="checkbox" id="dbgK4" checked /> Losa</label>
+        <label class="chk"><input type="checkbox" id="dbgMaus" checked /> Mausoleo</label>
+      </div>
+      <div class="dbgLabel">DENSIDAD DE CÉSPED · <b id="dbgGrassVal">0 %</b></div>
+      <input id="dbgGrass" type="range" min="0" max="150" step="5" value="0" aria-label="Densidad de césped" />
+      <div class="dbgLabel">CANTIDAD DE ÁRBOLES · <b id="dbgTreesVal">0 %</b></div>
+      <input id="dbgTrees" type="range" min="0" max="200" step="10" value="0" aria-label="Cantidad de árboles" />
+      <div class="dbgLabel">ESTACIÓN</div>
+      <div class="dbgRow">
+        <button class="wbtn season on" type="button" data-season="primavera">Primavera</button>
+        <button class="wbtn season" type="button" data-season="verano">Verano</button>
+        <button class="wbtn season" type="button" data-season="otono">Otoño</button>
+        <button class="wbtn season" type="button" data-season="invierno">Invierno</button>
+      </div>
+      </details>
+      <details class="dbgSec">
+        <summary>CLIMA</summary>
+      <div class="dbgLabel">PRESETS DE ESCENARIO · ESTADO COMPLETO</div>
+      <select id="dbgPreset" aria-label="Preset de escenario climático">
+        <option value="" selected>Elegir escenario…</option>
+        <optgroup label="Cielo y nubes">
+          <option value="mediodia">Mediodía despejado · primavera</option>
+          <option value="cirros">Cirros finos</option>
+          <option value="cumulos">Cúmulos rotos · rayos</option>
+          <option value="nublado">Nublado total · sudestada de invierno</option>
+        </optgroup>
+        <optgroup label="Lluvia y tormenta">
+          <option value="lluvia-ligera">Lluvia ligera · llovizna de sudestada (invierno)</option>
+          <option value="lluvia-moderada">Lluvia moderada · nimboestrato</option>
+          <option value="arcoiris">Arcoíris · chubasco de tarde con sol bajo (mirá en contra del sol)</option>
+          <option value="tormenta">Tormenta · cumulonimbo</option>
+        </optgroup>
+        <optgroup label="Luz, hora y fenómenos">
+          <option value="amanecer">Amanecer despejado</option>
+          <option value="ocaso">Ocaso despejado</option>
+          <option value="luna-llena">Noche de luna llena</option>
+          <option value="sin-luna">Noche sin luna</option>
+          <option value="niebla-radiacion">Niebla de radiación · madrugada de otoño</option>
+          <option value="calima">Ola de calor · enero, mediodía seco y calmo</option>
+        </optgroup>
+        <optgroup label="Estaciones · Córdoba, AR · SMN 1991–2020">
+          <option value="primavera">Primavera</option>
+          <option value="verano">Verano · húmedo, tormentas de tarde</option>
+          <option value="otono">Otoño</option>
+          <option value="invierno">Invierno</option>
+        </optgroup>
+      </select>
+      <div class="dbgRow">
+        <button class="wbtn wx on" type="button" data-wx="sunny">Soleado</button>
+        <button class="wbtn wx" type="button" data-wx="cloudy">Nublado</button>
+        <button class="wbtn wx" type="button" data-wx="rain">Lluvia</button>
+        <button class="wbtn wx" type="button" data-wx="gloomy">Lúgubre</button>
+        <button class="wbtn wx" type="button" data-wx="storm">Tormenta</button>
+      </div>
+      <div class="dbgLabel">TEMPERATURA DEL DÍA · <b id="dbgTempState">Automática</b></div>
+      <input id="dbgTempDay" type="range" min="-10" max="40" step="0.5" value="24" aria-label="Temperatura del día" />
+      <div class="dbgRow">
+        <input id="dbgTempBox" type="number" min="-10" max="40" step="0.5" value="24" aria-label="Temperatura del día en grados" style="width:96px; min-height:40px; padding:0 10px; border-radius:6px; background:rgba(238,242,228,0.08); color:#eef2e4; border:1px solid rgba(238,242,228,0.22); font-family:inherit; font-size:14px;" />
+        <button class="wbtn" id="dbgTempAuto" type="button">Automática</button>
+      </div>
+      <div class="dbgLabel">NUBOSIDAD · <b id="dbgCloudVal">0 %</b></div>
+      <input id="dbgCloud" type="range" min="0" max="100" step="1" value="0" aria-label="Nubosidad" />
+      <div class="dbgLabel">NIEBLA · <b id="dbgFogVal">0 %</b></div>
+      <input id="dbgFog" type="range" min="0" max="100" step="1" value="0" aria-label="Niebla" />
+      <div id="rainCtl" style="display:none">
+        <div class="dbgLabel">DENSIDAD DE LLUVIA · <b id="dbgRainVal">65 %</b></div>
+        <input id="dbgRain" type="range" min="0" max="100" step="5" value="65" aria-label="Densidad de lluvia" />
+      </div>
+      <div class="dbgLabel">CAPA DE NUBE · RENDER</div>
+      <div class="dbgRow">
+        <button class="wbtn ctype on" type="button" data-ctype="auto">Auto</button>
+        <button class="wbtn ctype" type="button" data-ctype="cirrus">Cirros</button>
+        <button class="wbtn ctype" type="button" data-ctype="altocumulus">Altocúmulos</button>
+        <button class="wbtn ctype" type="button" data-ctype="cumulus">Cúmulos</button>
+        <button class="wbtn ctype" type="button" data-ctype="stratus">Estratos</button>
+      </div>
+      <div class="dbgLabel">TEMPERATURA · <b id="dbgSimTVal">24 °C</b></div>
+      <input id="dbgSimT" type="range" min="-5" max="35" step="1" value="24" aria-label="Temperatura ambiente" />
+      <div class="dbgLabel">HUMEDAD RELATIVA · <b id="dbgSimRHVal">45 %</b></div>
+      <input id="dbgSimRH" type="range" min="30" max="100" step="1" value="45" aria-label="Humedad relativa" />
+      <div class="dbgLabel">INESTABILIDAD · CAPE · <b id="dbgSimCAPEVal">300 J/kg</b></div>
+      <input id="dbgSimCAPE" type="range" min="0" max="4000" step="50" value="300" aria-label="CAPE" />
+      <div class="dbgLabel">BASE DE NUBE · <b id="dbgBaseState">Automática</b></div>
+      <input id="dbgBase" type="range" min="100" max="3000" step="50" value="1200" aria-label="Base de nube" />
+      <div class="dbgRow">
+        <button class="wbtn" id="dbgBaseAuto" type="button">Automática</button>
+      </div>
+      <div class="dbgLabel">DENSIDAD DE NUBE · τ · <b id="dbgTauState">Automática</b></div>
+      <input id="dbgTau" type="range" min="0" max="100" step="1" value="40" aria-label="Densidad de nube (profundidad óptica tau)" />
+      <div class="dbgRow">
+        <button class="wbtn" id="dbgTauAuto" type="button">Automática</button>
+      </div>
+      </details>
+      <details class="dbgSec">
+        <summary>VIENTO</summary>
+      <div class="dbgLabel">VIENTO MEDIO · <b id="dbgSimUVal">2,5 m/s</b></div>
+      <input id="dbgSimU" type="range" min="0" max="30" step="0.5" value="2.5" aria-label="Viento medio" />
+      <div class="dbgLabel">VIENTO · INTENSIDAD · <b id="dbgWindVal">100 %</b></div>
+      <input id="dbgWind" type="range" min="0" max="250" step="5" value="100" aria-label="Intensidad del viento" />
+      <div class="dbgLabel">VIENTO · DIRECCIÓN · <b id="dbgWindDirVal">225°</b></div>
+      <input id="dbgWindDir" type="range" min="0" max="360" step="5" value="225" aria-label="Dirección del viento" />
+      <div class="dbgLabel">VELOCIDAD DE LAS NUBES · <b id="dbgCloudSpdVal">50 %</b></div>
+      <input id="dbgCloudSpd" type="range" min="0" max="200" step="5" value="50" aria-label="Velocidad de las nubes" />
+      <div class="dbgLabel">EL VIENTO MEDIO ES LA INDEPENDIENTE DEL MODELO (ráfaga y Beaufort se derivan en VALORES); INTENSIDAD Y DIRECCIÓN SON LA CAPA DE ESCENA (deriva de nubes, inclinación de la lluvia, balanceo); LA VELOCIDAD DE LAS NUBES MUEVE EL CAMPO. TODO LO DEL VIENTO VIVE EN ESTA PESTAÑA (v65, pedido de Guille: aislar sus parámetros fuera de CLIMA)</div>
+      </details>
+      <details class="dbgSec">
+        <summary>NUBE DE PRUEBA</summary>
+      <div class="dbgRow">
+        <label class="chk"><input type="checkbox" id="dbgTestOn" /> Activa</label>
+        <label class="chk"><input type="checkbox" id="dbgTestSweep" /> Barrido</label>
+      </div>
+      <div class="dbgLabel">OBJETIVO</div>
+      <div class="dbgRow">
+        <button class="wbtn tcloud on" type="button" data-tc="sun">Sol</button>
+        <button class="wbtn tcloud" type="button" data-tc="moon">Luna</button>
+      </div>
+      <div class="dbgLabel">POSICIÓN · <b id="dbgTestPosVal">0 %</b></div>
+      <input id="dbgTestPos" type="range" min="-100" max="100" step="1" value="0" aria-label="Posición de la nube de prueba" />
+      <div class="dbgLabel">DENSIDAD · τ · <b id="dbgTestTauVal">3,0</b></div>
+      <input id="dbgTestTau" type="range" min="0.2" max="24" step="0.2" value="3" aria-label="Densidad de la nube de prueba" />
+      <div class="dbgLabel">TAMAÑO · <b id="dbgTestSizeVal">100 %</b></div>
+      <input id="dbgTestSize" type="range" min="25" max="600" step="5" value="100" aria-label="Tamaño de la nube de prueba" />
+      </details>
+      <details class="dbgSec">
+        <summary>VALORES</summary>
+      <div class="dbgLabel">CAPA DE NUBE · RENDER · <b id="dbgCloudTypeNow">Altocúmulos rotos (auto)</b></div>
+      <div class="dbgLabel">TIPO DE NUBE · <b id="dbgSimType">—</b></div>
+      <div class="dbgLabel">BASE / TOPE · <b id="dbgSimBaseTop">—</b></div>
+      <div class="dbgLabel">TEMPERATURA DEL TOPE · <b id="dbgSimTopTemp">—</b></div>
+      <div class="dbgLabel">DENSIDAD DE NUBE · τ · <b id="dbgSimTau">—</b></div>
+      <div class="dbgLabel">DENSIDAD DE AGUA · LWC PICO / MEDIO · <b id="dbgSimLWC">—</b></div>
+      <div class="dbgLabel">TASA DE LLUVIA · <b id="dbgSimRain">—</b></div>
+      <div class="dbgLabel">GOTA · CAÍDA · <b id="dbgSimDrop">—</b></div>
+      <div class="dbgLabel">EVAPORACIÓN BAJO LA BASE · <b id="dbgSimEvap">—</b></div>
+      <div class="dbgLabel">ACTIVIDAD ELÉCTRICA · TOTAL / CG · <b id="dbgSimFlash">—</b></div>
+      <div class="dbgLabel">PRÓXIMO RAYO EN · <b id="dbgSimNextFlash">—</b></div>
+      <div class="dbgLabel">CORRIENTE ASCENDENTE · <b id="dbgSimUpdraft">—</b></div>
+      <div class="dbgLabel">VIENTO MEDIO / RÁFAGA · <b id="dbgSimWind">—</b></div>
+      <div class="dbgLabel">VISIBILIDAD · <b id="dbgSimVis">—</b></div>
+      <div class="dbgLabel">ESTADO · <b id="dbgSimVerdict">—</b></div>
+      <div class="dbgLabel">SOL A TRAVÉS DE LA NUBE · <b id="dbgSunT">T = 1,00 · τ = 0,00</b></div>
+      <div class="dbgLabel">PENUMBRA DE SOMBRA · ANCHO / RADIO PCF · <b id="dbgPen">—</b></div>
+      <div class="dbgLabel">DISCO DEL SOL · DIÁMETRO / AUREOLA · <b>0,53° físico (órbita) · aureola del shader ≈ 5 % de la radiancia del disco · halo sprite con alfa por transmitancia roja (v68: 0,27 al mediodía → 0,03 al horizonte)</b></div>
+      <div class="dbgLabel">OCLUSIÓN · <b id="dbgOccCase">Despejado</b></div>
+      <div class="dbgLabel">LUZ DIFUSA ESTIMADA · <b id="dbgDiffuse">12 %</b></div>
+      <div class="dbgLabel">INTERIOR SIN LUZ PROPIA · <b>Solo entra la difusa de fuera por las aberturas: factor Ω/(Ω+π) de su ángulo sólido — 0,42 en el umbral, ~0,20 a mitad de la sala, ~0,07 al fondo, piso 0,03 de interreflexión — multiplicando a la DHI de este frame: al atardecer colapsa con ella y queda solo el resplandor de la entrada</b></div>
+      <div class="dbgLabel">VENTANAS DE PANTEÓN · REGLA Y CRISTALES · <b>~62 % de los panteones llevan UNA SOLA ventana (v64: una, no una por pared — el lado también sale del sorteo; 0,84 × 1,06 m, antepecho 1,32 m, marco de mármol y parteluz de hierro); el resto, ninguna. Cristal por sorteo del chunk: fino 6 mm claro (45 %), grueso 24 mm verdoso (35 %), esmerilado 12 mm (20 %). Shader físico por paño: Fresnel Schlick F₀ 0,043 (IOR 1,52 — a rasante todo vidrio es espejo) y Beer–Lambert por el camino real t/cos θt (Snell): el grueso absorbe ~5× más que el fino y tiñe verdoso; el esmerilado transmite difuso (45 %) y resplandece a contraluz. La ventana es abertura real: su Ω × transmitancia se suma al de la puerta en la luz interior, y el sol entra por ella vía mapa de sombras (el cristal no proyecta sombra). PLACAS × VENTANA (v61): ningún nicho interior invade el rectángulo de la ventana (dilatado 6 cm) — la pared con ventana lleva dos nichos en vez de tres, para que ninguna placa tape el paño ni corte el haz</b></div>
+      <div class="dbgLabel">PANTEONES · TAMAÑOS (v64) · <b>Dos plantas por sorteo del chunk: la clásica de siempre (4,6 × 3,9 × 3,0 m, ~70 %) y la GRANDE (5,9 × 5,0 × 3,45 m, ~30 %), un poco más ancha, profunda y alta. Todo lo demás sigue a la planta real: colisionadores, nichos, la cavidad de la ley de luz interior (shader y réplica CPU), la cavidad del haz y las superficies de pasos</b></div>
+      <div class="dbgLabel">COLINAS DEL HORIZONTE (v64) · <b>Anillo de relieve procedural (470–1185 m, dentro del disco de suelo) que sigue al jugador como el propio disco: crestas de 15–60 m solo en algunos sectores (amplitud por sectores de frecuencia baja: en otras direcciones la llanura llega plena al horizonte). Luz de la tubería única (sol/hemisférica + FogExp2) y la misma fusión al color de horizonte del suelo (smoothstep 420→1120 m) al 85 %: se divisan como siluetas lejanas sin competir con el terreno. Sin sombras (fuera de la cámara de sombras)</b></div>
+      <div class="dbgLabel">NUBES · DISTRIBUCIÓN (v64) · <b>El campo siempre cubrió todo el cielo; lo centrado en la fuente era su ILUMINACIÓN: la compuerta del Sky multiplicaba la capa por max(dayFactor, 0,03) según el SOL — de noche caía al 3 % en todo el cielo (y el término de luna de dentro, con ella: ×0,003 neto) y solo sobrevivían los brillos aditivos junto a la luna. Ahora la compuerta es max(pow(dayFactor, 0,35), piso de la fuente activa clamp(uMoonSilver·0,9, 0,03, 1)), el término de luna sube 0,10→0,30 y el ambiente diurno se aplana (mix con el término uniforme del sol al 42 %): la capa se ilumina con la difusa de todo el cielo y se reparte por todo el cielo, de día, al crepúsculo y de noche con luna</b></div>
+      <div class="dbgLabel">LLUVIA · NUNCA NEGRA · <b>Las gotas son quads instanciados con shader procedural — NINGÚN asset: nada puede dar 404. En la fuente de esta versión no existe ninguna primitiva de línea para la lluvia (verificado: sin Line/LineDashedMaterial en todo el código). Color con piso dentro del fragment: azul grisáceo (0,66 · 0,74 · 0,84) × brillo del frame clampado [0,35–1,20], piso absoluto (0,28 · 0,34 · 0,42) y alfa techado a 0,42: una mezcla translúcida con ese color no puede pintar negro puro (0,0,0). El origen de los guiones de la captura que reportó Guille no está verificado; la garantía de esta versión es el piso, no un diagnóstico de aquella captura</b></div>
+      <div class="dbgLabel">ROSTROS DE LAS PLACAS · REGISTRO DE PERSONA (v66) · <b>Cada placa es una persona: nombre, fechas y un rostro DE SU ÉPOCA, con la edad del rostro según la edad de muerte. Atlas local faces.jpg (48 rostros ficticios generados localmente, 545 KB): sepia tipo cabinet card para muertes &lt; 1935, blanco y negro años 50 para 1935–1969, color apagado a foto impresa para ≥ 1970; 4 bandas de edad (20s/40s/60s/80s) y ambos sexos, con espejado por placa. Medallón foto-cerámico: FORMA sorteada (óvalo 52 % · rectángulo redondeado · arco · redondo) y MARCO sorteado (bronce de doble aro · mármol incrustado · grabado fino · al ras) — variedad pedida por Guille. Brillo de porcelana: especular arriba-izquierda + veladura diagonal dentro del medallón. La foto ENVEJECE con la tumba: desgaste = años desde la muerte / 140 (lavado, rayas, humedad que sube por abajo, plateado de bordes en las viejas). Las placas infantiles conservan el retrato procedural difuminado (sin rostros de niños). La vía de fotos reales de dominio público se exploró y se descartó: la búsqueda devolvía personajes famosos y escenas grupales</b></div>
+      <div class="dbgLabel">CONTRALUZ · OBJETO INTERPUESTO (v66, aclaración de Guille) · <b>El borde que brilla es el del objeto ENTRE la cámara y la fuente: ver parte del sol desde detrás de una tumba enciende el rim de su silueta (compuerta mirada·fuente sobre la normal perpendicular a la vista, en los materiales de chunks, suelo y colinas de la v65)</b></div>
+      <div class="dbgLabel">CONTRALUZ CORREGIDA (v67, reporte de Guille tras la v66: «solo veo un resplandor permanente cada vez que miro el sol, brilla mucho») · <b>Diagnóstico: la v65 sumaba el rim sin modular por el albedo, con compuerta (−V·L)³ (0,65 a 30° del sol) y ganancia 0,38 × intensidad ≈ 3,0 ≈ 1,14 — sobre el suelo a vista rasante (N·V → 0 en todo el terreno) y sobre las caras planas perpendiculares a la vista (rim = 1 en toda la cara) eso era un velo cálido permanente sobre medio encuadre, no un borde. Corrección: compuerta a la potencia 10 (a 30° vale 0,03: el rim solo vive a pocos grados del disco en pantalla, donde está el objeto interpuesto), factor de roce (1 − |N·L|)² que apaga las caras frontales — la cara del objeto queda en sombra, como en la foto — y deja solo el limbo rasante a vista y luz, rim a la potencia 5 (banda fina), ganancia 0,38 → 0,22, y el SUELO pierde el parche (un plano no tiene silueta; las colinas lo conservan: su cresta sí es la silueta del horizonte). El velo de cámara #sunGlare también se estrecha: cono desde align 0,70 (antes 0,35 ≈ 69°) y techo 0,11 (antes 0,16)</b></div>
+      <div class="dbgLabel">SOL · APARIENCIA SEGÚN LA LUZ (v67, pedido de Guille con foto) · <b>El disco conserva su tamaño real (0,53°, semidiámetro orbital) a toda hora; lo que cambia con las condiciones es su APARIENCIA, como en la foto: de día, sol-lámpara — un término de óptica en el shader del cielo suma sobre el disco un resplandor compacto (lóbulos pow 700/180, ≈ ±4°, ~15 % de la radiancia del disco) y la estrella de difracción (16 púas finas con caída exp(−r/4,9°) + 4 principales más largas, con variación entre púas) — plena solo con el sol alto (compuerta de elevación 8°→23°), porque es la radiancia plena del disco la que satura y difracta; al ocaso la compuerta es CERO y manda la silueta: el disco naranja de transmitancia que ya dibujaba el parche. La estrella obedece la ley única del disco: × discTrans (la nube que tapa el disco apaga sus rayos con él) × extinción de niebla del camino del sol × color de transmitancia</b></div>
+      <div class="dbgLabel">SOL-LÁMPARA · LEY FÍSICA (v68, investigación sol-lámpara 2026-11-22) · <b>La compuerta a ojo de la v67 se reemplazó por la ley del informe: la fuerza de la estrella es clamp(T_R·1,2) con T_R = exp(−τ_R·m), τ_R = 0,113 (Rayleigh a 650 nm 0,049 + aerosol Ångström 1,3 con τ_M(550) = 0,08) y m = masa de aire de Kasten &amp; Young (1 al cenit, 5,6 a 10°, 19,4 a 2°, 37,9 al horizonte). Réplica: fuerza 1,00 al mediodía · 0,64 a 10° · 0,44 a 6° · 0,13 a 2° · 0,02 a 0° — al ocaso la estrella muere por extinción y queda solo la silueta. Púas ajustadas al informe: finas exp(−r/4,0°), principales exp(−r/6,9°), visibles 8–12°, y nacen FUERA del limbo (dentro manda el disco saturado). El halo sprite obedece la misma T_R: alfa 0,03 + 0,27·T_R (0,27 al mediodía → 0,06 a 2° → 0,03 al horizonte; antes 0,22 fijo, sobrevivía sobre la silueta). Borde del disco Δcos ≈ 4,9×10⁻⁶ ≈ el del informe (~4×10⁻⁶, ~0,05° ≈ 1 px a 60° de FOV). Sin EffectComposer ni bloom: todo vive en el shader del cielo y en los sprites, como manda el informe para Mali. Fuentes: Wikipedia (Sun, Diffraction spike, Lens flare), thescience360.com, three.js Sky.js r128 (MIT)</b></div>
+      <div class="dbgLabel">PARPADEO DE TEXTURAS · SUPERFICIES COPLANARES (v68, reporte de Guille: «parpadeo en las columnas y demás partes del modelo») · <b>Diagnóstico por auditoría geométrica en Node sobre los constructores reales (8 variantes de panteón, 5 tumbas, ángel, cerca): pares de caras paralelas a &lt;20 mm con solape. Causas visibles: (1) las esquinas del panteón estaban construidas DOS veces (laterales a todo el fondo × frente/fondo a todo el ancho) y sus caras exteriores coplanares se alternaban la textura; ahora cada esquina es de una sola pared. (2) Cruces de lápida y de sarcófago: mástil y travesaño con el mismo fondo = frente coplanar; travesaño 2 cm en relieve. (3) Marco de ventana: las 4 piezas compartían plano lateral; laterales retranqueados 12 mm/cara; barra horizontal del parteluz a 0,05 (ni 0,055 de la vertical ni 0,04 del cristal grueso). (4) Columnas del pórtico: el vértice trasero del fuste caía exacto sobre el plano frontal de la cornisa (tangencia); fuste a D/2 + 0,39. (5) Placas a 1–11 mm de su piedra (la de la losa baja, a 1 mm): ahora 15–20 mm + polygonOffset en su material. (6) Postes de cerca a 2,5 mm de los rieles: poste a 0,065. (7) Cabecera de la losa baja: compartía el plano trasero con su losa; adelantada 2 cm. Resultado: clases coplanares visibles de misma orientación 311 → 0 (quedan 91 internas: caras inferiores en y = 0 bajo el terreno e interfaces encerradas entre sólidos, que ninguna vista alcanza)</b></div>
+      <div class="dbgLabel">PUERTAS Y MATERIALES DE PANTEÓN (v65) · <b>Sorteo por panteón: ~40 % SELLADOS — hoja cerrada con textura real en el vano y colisionador permanente (pueden tener ventana, pero no se entra) — y ~60 % ABRIBLES: la hoja nace cerrada sobre un pivote en la bisagra, con colisionador; mirándola de frente a menos de 2,8 m el botón dice ABRIR (E o toque) y la hoja gira 1,9 rad hacia adentro, su colisionador se retira y la abertura de la puerta de la ley de luz interior sube con el giro (uDoorOpen en el shader, doorF en la CPU: cerrada = 0, solo entra luz por la ventana). Textura de la hoja por sorteo: pino rústico o tablones con herrajes (Poly Haven, CC0, locales). Material de pared por sorteo: mármol (~65 %) o cemento cepillado (~35 %, Poly Haven Brushed Concrete CC0) — la silueta lejana usa el mismo material</b></div>
+      <div class="dbgLabel">CONTRALUZ (v65) · <b>Como la foto de referencia: fuente cálida detrás del sujeto, frente en sombra y borde luminoso en la silueta (pila del informe de contraluz: ACES + direccional cálida + hemisférica tenue + rim Fresnel en el material + exposición analítica; sin EffectComposer). El frente en sombra sale de la única luz direccional (la cara que no mira a la fuente no recibe directa) y el velo es el resplandor de cámara del cielo; el BORDE es un parche compartido por los materiales opacos (chunks, suelo y colinas): rim = (1 − |N·V|)³ (potencia 3, dentro del rango 1–8 del informe) × compuerta de contraluz (−V·L)³, con L y el color × intensidad de la FUENTE ACTIVA de este frame (sol o luna, con su T de nubes y su color de camino de aire: al atardecer el borde es naranja porque la fuente lo es). Ganancia 0,38 sobre la luz direccional. EXPOSICIÓN: al mirar hacia la fuente baja hasta −16 % (coseno mirada·fuente, con el signo de la ERRATA del informe: la mirada es cámara→escena y NO se niega) — el frente cae y el borde conserva el color. Los cipreses (GLB) no llevan el parche en esta versión</b></div>
+      <div class="dbgLabel">LINTERNA · 3 INTENSIDADES (v65) · <b>Cada apretón de F o del botón avanza el ciclo: apagada → BAJA (0,30 × 34 cd) → MEDIA (0,60) → ALTA (1,00) → apagada. Al encender arranca siempre en la baja. El nivel interpola suave y la legibilidad de placas lee el nivel real del frame</b></div>
+      <div class="dbgLabel">LLUVIA · SINCRONÍA CON LA NUBE (v65) · <b>Fenómeno→consecuencia, sin mapeo arbitrario: el motor climático deriva la tasa MEDIA (mm/h) de la nube media del tipo — la misma agua (LWP) que fija τ = 1,5·LWP/re fija la lluvia (3,6·vt·kq·LWC·fEvap), así que para un tipo lluvia ∝ τ. DÓNDE cae lo reparte el campo: tasa local = media × profundidad local del MISMO campo fbm que dibuja el cielo y sombrea el suelo / su media espacial (grilla CPU 7×7, ±400 m); la integral sobre la planicie conserva la tasa del modelo. Sin nube encima no cae lluvia; bajo un núcleo denso, hasta ~3×. La gota que toca un punto salió de la base viento arriba (muestreo desplazado −viento·0,32·base/vt, la misma deriva que inclina las rayas). La tasa local manda en la cuenta y el alfa de las rayas (tabla del informe de lluvia realista: 1 mm/h → ~1000 rayas, alfa 0,10; 5 → ~2750, 0,185; 10 → ~3750, 0,24; ≥25 → 4000 y manda el alfa/niebla), en el volumen del sonido y en el mojado del suelo (wet.js integra la tasa local). Población por gota: diámetro en bandas de Marshall–Palmer alrededor del dropMm del tipo — cada nube desprende su agua: estratos 0,5 mm, nimboestrato 1,5, cumulonimbo 3,5, y dentro del tipo el diámetro medio crece con la tasa (D₀ ∝ R^0,21 de la propia Marshall–Palmer: a más mm/h, gotas más grandes) — y velocidad terminal de Atlas–Ulbrich v(D) = 9,65 − 10,3·exp(−0,6·D), la ley del equilibrio entre el peso de la gota (gravedad × su masa) y el arrastre del aire, sin simular gota a gota: coincide con el vt del motor (0,5 mm → 2,0 m/s; 1,5 → 5,5; 3,5 → 8,4). Largo de raya = v·dt·2,5 (exposición), ancho con piso de píxel y alfa que conserva la energía. La fila VISIBILIDAD POR LLUVIA muestra el factor local en vivo (×F y mm/h aquí)</b></div>
+      <div class="dbgLabel">HAZ DE LA VENTANA · SHADER (v63) · <b>El haz es un PRISMA, no un cono: los rayos del sol son paralelos (disco 0,53°), así que las 4 esquinas del paño se extruyen a lo largo de −lightDir hasta la primera superficie de la cavidad (suelo, pared opuesta o tapa del sarcófago, por test de rayo) — 12 triángulos + un núcleo al 55 % (×1,45), aditivo, con depthTest (las paredes lo ocluyen). Solo se ensancha por la penumbra: 0,0093 × distancia. Sin caída 1/r² (fuente colimada; la pérdida Beer–Lambert en 3 m es despreciable). Lo que se ve es dispersión de MIE del polvo (blanco/dorado, pico hacia la fuente), no Tyndall: fase barata tipo Henyey–Greenstein 0,35 + 1,65·μ⁴, factor de vista sen θ (mirando a lo largo del haz las caras se apagan) y neblina de 2 octavas de ruido de valor en textura local 128×128 advectada a lo largo del haz (densidad 0,66–1,00: nunca cero). Fundido del extremo en los últimos ~0,35 m</b></div>
+      <div class="dbgLabel">HAZ · PARCHE DONDE CHOCA · <b>El parche es el cuadrilátero de las mismas esquinas proyectadas sobre el receptor: haz y parche se encuentran sin hueco. Borde = penumbra física (0,0093 × distancia + suciedad del vidrio, 3–6 cm). El suelo ya recibe su parche real por el mapa de sombras (el cristal no sombrea, el parteluz sí); este quad aditivo de ganancia 0,30 solo le devuelve los filos del parteluz que el téxel de 4,1 cm del mapa difumina. La MÁSCARA DEL PARTELUZ es una sola función GLSL sobre la UV de la ventana, compartida por haz y parche: las barras oscuras coinciden en los dos</b></div>
+      <div class="dbgLabel">HAZ · POLVO Y LEY DE BRILLO · <b>320 motas SOLO dentro del prisma, animadas en el vértice: deriva ~5 cm, destello de 1–2 s cada 4–12 s al girar, tamaño 1–8 px (las cercanas, grandes y tenues: desenfocadas) y fundido en los últimos 10 cm sobre la superficie. UNA ley para haz, parche y polvo: brillo = luz de la fuente activa de este frame × τ del cristal a la incidencia real (la de su tipo a incidencia normal × (1−R)² de Fresnel, F₀ 0,043: a 80° queda ~0,37). El esmerilado difunde: su haz vale ×0,30 y su parteluz se lava. Luna: los 0,25 lux físicos contra 100 000 del sol son invisibles a exposición fija, así que el haz lunar usa la misma luz de frame (la tubería ya compensa la noche) con factor de exhibición 0,30. LIMITACIÓN: un cuerpo DENTRO del haz no talla una muesca oscura en él (el prisma no se muestrea contra sombras); el parche sobre las superficies sí obedece al mapa de sombras real</b></div>
+      <div class="dbgLabel">CAMINO · TIERRA SECA · <b>El camino es TIERRA SECA: su color sale de invertir la ley de mojado del proyecto (raíz 0,55 sobre la foto de suelo húmedo + desaturación polvorienta 38 %; media ≈ (0,19 · 0,13 · 0,09) lineal) y ya NO se divide por el tinte de estación (eso duplicaba el rojo y lo volvía ladrillo). Fango solo cuando llueve de verdad, vía wet.js. La fusión pasto–tierra vive SOLO en la unión: lenguas de pasto en los últimos ~0,5 m interiores y tierra pisada hasta ~0,24 m fuera; el centro del camino es tierra plena</b></div>
+      <div class="dbgLabel">DISCO DE LA LUNA · COLOR · <b>Neutro × su transmitancia de aire: el amarillo fijo ~4100 K (R/B 1,42) que duplicaba la calidez ya presente en la foto se eliminó en v60 — alta, la luna es gris cálido natural (a 40° el aire solo aporta R/B ≈ 1,10); el enrojecimiento crece solo al bajar, por el camino de aire</b></div>
+      <div class="dbgLabel">DISCO DE LA LUNA · BRILLO PROPIO · <b>Ganancia uniforme ×2,3 sobre la foto (v61): el disco brilla por sí mismo por encima del cielo SIN tocar su contraste interno — la razón de luminancia mares/tierras altas queda intacta y los cráteres se siguen viendo. BRILLO DE LIMBO (geometría corregida en v62): el disco ocupa 0,8125 de su sprite (r 208 de 256), así que en el lienzo del anillo (1,5×) el limbo cae a 0,542; el perfil aditivo nace dentro de la cara (0 hasta 0,40, toque 0,10 a 0,50), pica suave (0,34) justo fuera del limbo (0,545) y decae sin escalón a 0 — brillo monótono decreciente del limbo hacia fuera, sin aro despegado ni franja oscura (la v61 picaba a 1,22 radios del disco: el «borde extraño») — y obedece a la misma cadena que el halo (fase × T de nubes × extinción del camino de aire)</b></div>
+      <div class="dbgLabel">NUBE DE PRUEBA · SOMBRA · <b>Proyecta su sombra (slot 0) siguiendo a su objetivo efectivo: el elegido mientras esté sobre el horizonte; si está debajo, la nube pasa a la fuente activa (de noche sigue a la luna aunque el objetivo diga Sol). La mancha cae desplazada h/tan(elevación), alargada 1/sen y con penumbra h·tan(0,53°); dentro queda el piso difuso, nunca negro</b></div>
+      <div class="dbgLabel">REBOTE DEL SUELO · GHI·ρ EN CARAS VERTICALES · <b id="dbgBounce">—</b></div>
+      <div class="dbgLabel">CÉSPED · ALBEDO BANDA ANCHA / RGB VISIBLE · <b>Verde 0,20 (R 0,05 · G 0,09 · B 0,04) · seco paja 0,35–0,45 · mojado ×0,90</b></div>
+      <div class="dbgLabel">TINTE DEL REBOTE · <b>Deriva del césped real (estación): verde → verdoso tenue · seco → cálido paja · aporte secundario, sin tinte fijo (JPL ECOSTRESS)</b></div>
+      <div class="dbgLabel">PIEDRA DE CEMENTO · ALBEDO SECO / MOJADO · <b>0,25 meteorizada (0,35–0,40 nueva) / ~0,13</b></div>
+      <div class="dbgLabel">PIEDRA · TINTE / RUGOSIDAD GGX · <b>Gris cálido R/B 1,23 (USGS) / 0,90 seco → 0,40 mojado</b></div>
+      <div class="dbgLabel">FUENTES REBOTE Y PIEDRA: JPL ECOSTRESS · USGS SPLIB05A · LEVINSON &amp; AKBARI (LBNL) · ACPA · ASTM C1364 · PANG ET AL. 2023 — RUGOSIDAD Y MOJADO DE LA METEORIZADA: CALIBRACIONES, NO MEDICIONES</div>
+      <div class="dbgLabel">NIEBLA DERIVADA DEL MODELO · <b id="dbgFogDer">—</b></div>
+      <div class="dbgLabel">VISIBILIDAD POR LLUVIA · SIN NIEBLA · <b id="dbgRainVis">—</b></div>
+      <div class="dbgLabel">LUZ DE LUNA EN EL SUELO · <b id="dbgMoonLux">—</b></div>
+      <div class="dbgLabel">FASE DE LA LUNA · <b id="dbgMoonVal">—</b></div>
+      <div class="dbgLabel">DISTANCIA AL SOL · <b id="dbgOrbDist">—</b></div>
+      <div class="dbgLabel">TAMAÑO APARENTE DEL SOL · <b id="dbgOrbTheta">—</b></div>
+      <div class="dbgLabel">IRRADIANCIA EXTRATERRESTRE · <b id="dbgOrbIrr">—</b></div>
+      <div class="dbgLabel">DECLINACIÓN / ALTURA AL MEDIODÍA · <b id="dbgOrbDecl">—</b></div>
+      <div class="dbgLabel">DÍA SOLAR · SALIDA / PUESTA · <b id="dbgOrbDay">—</b></div>
+      <div class="dbgLabel">DISTANCIA A LA LUNA · <b id="dbgOrbMoon">—</b></div>
+      <div class="dbgLabel">TURBIDEZ DE LINKE · TL · <b id="dbgAirTL">—</b></div>
+      <div class="dbgLabel">ÍNDICE DE CLARIDAD · Kt · <b id="dbgAirKt">—</b></div>
+      <div class="dbgLabel">PEREZ · F1 CIRCUNSOLAR / F2 HORIZONTE · <b id="dbgPerez">—</b></div>
+      <div class="dbgLabel">EVAPORACIÓN FAO-56 · ET0 / CHARCO · <b id="dbgEvap">—</b></div>
+      <div class="dbgLabel">ADAPTACIÓN VISUAL · La / PURKINJE s · <b id="dbgPurk">—</b></div>
+      <div class="dbgLabel">SUPERFICIE · SENDERO / PIEDRA / TIERRA · <b id="dbgSurfT">—</b></div>
+      <div class="dbgLabel">ÓRBITA Y LUZ: NASA NSSDCA · NOAA GML · PEREZ ET AL. 1990 (PVPMC/SANDIA) · LATITUD 31,42° S · CÓRDOBA, ARGENTINA · OBSERVATORIO SMN 87345 · 425 M · NORMALES 1991–2020 (VIENTO: MERRA-2 · PASTO SECO: CALIBRACIÓN)</div>
+      <div class="dbgLabel">SUPERFICIE MOJADA · SENDERO / TIERRA / PIEDRA · <b id="dbgWetW">0 % / 0 % / 0 %</b></div>
+      <div class="dbgLabel">CHARCOS · SENDERO / TIERRA · <b id="dbgWetD">0,0 mm / 0,0 mm</b></div>
+      </details>
+      <details class="dbgSec">
+        <summary>JUGADOR</summary>
+      <div class="dbgLabel">MOVIMIENTO</div>
+      <div class="dbgLabel">VELOCIDAD AL CAMINAR · <b id="dbgWalkVal">5.2 m/s</b></div>
+      <input id="dbgWalk" type="range" min="1" max="8" step="0.1" value="5.2" aria-label="Velocidad al caminar" />
+      <div class="dbgLabel">VELOCIDAD AL CORRER · <b id="dbgRunVal">7.8 m/s</b></div>
+      <input id="dbgRun" type="range" min="3" max="12" step="0.1" value="7.8" aria-label="Velocidad al correr" />
+      <div class="dbgRow">
+        <label class="chk"><input type="checkbox" id="dbgNoclip" /> Noclip</label>
+      </div>
+      </details>
+    </div>
+
+    <div id="plaqueCard" class="plate">
+      <div class="pname" id="pName"></div>
+      <div class="pyears" id="pYears"></div>
+      <div class="pepitaph" id="pEpitaph"></div>
+    </div>
+    <div id="gaze" aria-hidden="true"><div id="gazeFill"></div></div>
+    <div id="hint" class="plate">WASD para caminar · Ratón o flechas para mirar · Shift para correr · Espacio saltar · C agacharse · N noclip · F linterna (baja → media → alta → apagada) · E para leer la placa que miras o abrir la puerta que miras</div>
+
+    <div id="joy"><div id="joyKnob"></div></div>
+    <button id="btnRun" class="plate" type="button">CORRER</button>
+    <button id="btnInteract" class="plate" type="button">LEER</button>
+
+    <div id="startOverlay">
+      <div id="startCard" class="plate">
+        <button id="btnStart" type="button" disabled>Cargando…</button>
+        <button id="btnHelp" type="button" aria-expanded="false">Ayuda</button>
+        <div id="helpList">
+          <b>PC</b><br />
+          WASD — caminar<br />
+          Flechas ← → ↑ ↓ — girar e inclinar la mirada<br />
+          Ratón — mirar (clic en la escena para capturar el ratón)<br />
+          Shift — correr<br />
+          Espacio — saltar<br />
+          C (mantener) — agacharse: cámara baja, paso lento, cuerpo más chico<br />
+          N — noclip: atravesar tumbas, muros y suelo (con noclip, Espacio sube y C baja)<br />
+          F — linterna: cada apretón sube un nivel (baja → media → alta) y el siguiente la apaga<br />
+          E — leer la placa que estás mirando, o abrir la puerta de un panteón si estás frente a ella. Algunos panteones están sellados: el botón ABRIR también aparece frente a ellos y puedes intentarlo — se escucha el golpe de la puerta bloqueada, pero no se abre. Las puertas que sí abren suenan al girar<br />
+          <b>Móvil</b><br />
+          Joystick izquierdo — caminar<br />
+          Arrastrar sobre la escena — mirar<br />
+          Botón CORRER — correr<br />
+          Botón LEER — leer la placa que estás mirando<br />
+          Botón LINTERNA — alumbrar de noche<br />
+          <span style="font-size:11px; opacity:0.7">Foto de la luna: Luc Viatour / Lucnix.be (CC BY-SA 3.0) · Texturas: Poly Haven (CC0) · Mármol de los panteones: ambientCG Marble001 (CC0) · Cemento y puertas de los panteones: Poly Haven Brushed Concrete, Rough Pine Door y Wooden Garage Door (CC0) · Ciprés italiano: modelo de tevy (CC0) · Ángel de los panteones: «Cathedral angel» de Polyfork (CC BY 4.0) · Cruces y lápidas con cruz: Kenney Graveyard Kit (CC0) · Modelo de la sombra: Xbot de Mixamo · Rostros de las placas: retratos ficticios generados localmente (ninguna persona real)</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="err"></div>
+
+    <script src="assets/three.min.js?v=73"></script>
+    <script src="assets/cannon.min.js?v=73"></script>
+    <script>
+      window.addEventListener('error', function (e) {
+        // Los fallos de URL de assets en páginas blob: («Failed to parse
+        // URL from assets/…» al construir un Request) NO son errores
+        // fatales: cada carga de asset tiene su respaldo atrapado (p. ej.
+        // la sombra procedural si el Xbot no carga). No pintar el banner
+        // rojo por ellos; el resto de errores sí se muestra.
+        var msg = e.message || '';
+        if (/Failed to parse URL from assets\//.test(msg) || (/Failed to construct 'Request'/.test(msg) && /assets\//.test(msg))) {
+          if (window.console && console.warn) console.warn('Asset no resuelto en esta base (con respaldo):', msg);
+          return;
+        }
+        var el = document.getElementById('err');
+        el.style.display = 'block';
+        el.textContent = 'Error: ' + (e.message || e.type) + (e.filename ? ' — ' + e.filename + ':' + e.lineno : '');
+      });
+    </script>
+    <script src="assets/js/utils.js?v=73"></script>
+    <script src="assets/js/texdata.js?v=73"></script>
+    <script src="assets/js/plaques.js?v=73"></script>
+    <script src="assets/js/scene.js?v=73"></script>
+    <script src="assets/js/materials.js?v=73"></script>
+    <script src="assets/js/geometry.js?v=73"></script>
+    <script src="assets/js/trees.js?v=73"></script>
+    <script src="assets/js/deco.js?v=73"></script>
+    <script src="assets/js/world.js?v=73"></script>
+    <script src="assets/js/player.js?v=73"></script>
+    <script src="assets/js/audio.js?v=73"></script>
+    <script src="assets/js/reading.js?v=73"></script>
+    <script src="assets/js/climate.js?v=73"></script>
+    <script src="assets/js/wet.js?v=73"></script>
+    <script src="assets/js/weather.js?v=73"></script>
+    <script src="assets/js/sky.js?v=73"></script>
+    <script src="assets/js/debug.js?v=73"></script>
+    <script src="assets/js/main.js?v=73"></script>
+  </body>
+</html>
